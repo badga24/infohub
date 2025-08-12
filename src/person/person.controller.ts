@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PersonService } from './person.service';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
@@ -17,6 +17,11 @@ export class PersonController {
     return this.personService.findAll();
   }
 
+  @Get('search')
+  searchUsers(@Query('query') query: string, @Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+    return this.personService.searchUsers(query, page, limit);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.personService.findOne(+id);
@@ -31,4 +36,5 @@ export class PersonController {
   remove(@Param('id') id: string) {
     return this.personService.remove(+id);
   }
+
 }

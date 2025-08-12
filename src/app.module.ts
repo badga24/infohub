@@ -15,7 +15,6 @@ import { Person } from './person/entities/person.entity';
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
       synchronize: process.env.NODE_ENV !== 'production',
-      logging: process.env.NODE_ENV !== 'production',
       entities: [
         Person
       ],
