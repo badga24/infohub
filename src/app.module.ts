@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PersonModule } from './person/person.module';
+import { Person } from './person/entities/person.entity';
 
 @Module({
   imports: [
@@ -15,7 +16,9 @@ import { PersonModule } from './person/person.module';
       database: process.env.DATABASE_NAME,
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV !== 'production',
-      entities: [],
+      entities: [
+        Person
+      ],
     }),
     PersonModule
   ],
