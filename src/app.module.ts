@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PersonModule } from './person/person.module';
 import { Person } from './person/entities/person.entity';
+import { CategoryModule } from './category/category.module';
+import { Category } from './category/entities/category.entity';
 
 @Module({
   imports: [
@@ -16,10 +18,12 @@ import { Person } from './person/entities/person.entity';
       database: process.env.DATABASE_NAME,
       synchronize: process.env.NODE_ENV !== 'production',
       entities: [
-        Person
+        Person,
+        Category
       ],
     }),
-    PersonModule
+    PersonModule,
+    CategoryModule
   ],
   controllers: [],
   providers: [],

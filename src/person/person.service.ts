@@ -33,7 +33,7 @@ export class PersonService {
     return this.personRepository.delete(id);
   }
 
-  async searchUsers(query: string, page: number = 1, limit: number = 10): Promise<IPage<Person>> {
+  async search(query: string, page: number = 1, limit: number = 10): Promise<IPage<Person>> {
     const [results, total] = await this.personRepository
       .createQueryBuilder('person')
       .where('LOWER(person.firstName) LIKE :query', { query: `%${query.toLowerCase()}%` })

@@ -19,7 +19,7 @@ export class PersonController {
 
   @Get('search')
   searchUsers(@Query('query') query: string, @Query('page') page: number = 1, @Query('limit') limit: number = 10) {
-    return this.personService.searchUsers(query, page, limit);
+    return this.personService.search(query, page, limit);
   }
 
   @Get(':id')
