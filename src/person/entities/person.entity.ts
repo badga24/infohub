@@ -1,5 +1,6 @@
 import { Article } from "src/article/entities/article.entity";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Topic } from "src/topic/entities/topic.entity";
+import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Person {
@@ -15,6 +16,9 @@ export class Person {
 
     @Column({ type: 'varchar', length: 100 })
     email: string;
+
+    @ManyToMany(() => Topic, topic => topic.speakers)
+    topics: Topic[];
 
     @OneToMany(() => Article, article => article.author)
     articles: Article[];

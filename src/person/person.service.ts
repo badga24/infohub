@@ -23,7 +23,7 @@ export class PersonService {
 
   findOne(id: number) {
     const entity = this.personRepository.findOneBy({ id });
-    if (!entity) {
+    if (entity === null || entity === undefined) {
       throw new Error(`Person with id ${id} not found`);
     }
     return entity;
