@@ -5,6 +5,7 @@ import { PersonModule } from './person/person.module';
 import { Person } from './person/entities/person.entity';
 import { CategoryModule } from './category/category.module';
 import { Category } from './category/entities/category.entity';
+import { ArticleModule } from './article/article.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { Category } from './category/entities/category.entity';
       ],
     }),
     PersonModule,
-    CategoryModule
+    CategoryModule,
+    ArticleModule
   ],
   controllers: [],
   providers: [],
