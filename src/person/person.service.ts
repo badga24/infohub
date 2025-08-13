@@ -22,7 +22,11 @@ export class PersonService {
   }
 
   findOne(id: number) {
-    return this.personRepository.findOneBy({ id });
+    const entity = this.personRepository.findOneBy({ id });
+    if (!entity) {
+      throw new Error(`Person with id ${id} not found`);
+    }
+    return entity;
   }
 
   update(id: number, updatePersonDto: UpdatePersonDto) {

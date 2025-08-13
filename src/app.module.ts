@@ -6,6 +6,7 @@ import { Person } from './person/entities/person.entity';
 import { CategoryModule } from './category/category.module';
 import { Category } from './category/entities/category.entity';
 import { ArticleModule } from './article/article.module';
+import { Article } from './article/entities/article.entity';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { ArticleModule } from './article/article.module';
       synchronize: process.env.NODE_ENV !== 'production',
       entities: [
         Person,
-        Category
+        Category,
+        Article
       ],
     }),
     PersonModule,

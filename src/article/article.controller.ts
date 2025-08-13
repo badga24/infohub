@@ -2,14 +2,33 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { CategoryService } from 'src/category/category.service';
+import { PersonService } from 'src/person/person.service';
+import { ICreateArticle } from './interfaces/create-article.interface';
 
 @Controller('article')
 export class ArticleController {
-  constructor(private readonly articleService: ArticleService) {}
+  constructor(
+    private readonly articleService: ArticleService,
+    private readonly categoryService: CategoryService,
+    private readonly personService: PersonService
+  ) { }
 
   @Post()
-  create(@Body() createArticleDto: CreateArticleDto) {
-    return this.articleService.create(createArticleDto);
+  async create(@Body() createArticleDto: CreateArticleDto) {
+    const author = await this.personService.findOne(createArticleDto.author);
+    const categories = await Promise.all(
+      createArticleDto.categories.map(async category => await this.categoryService.findOrCreate(category))
+    );
+
+    const articleData: ICreateArticle = {
+      title: createArticleDto.title,
+      content: createArticleDto.content,
+      categories,
+      author: author!
+    }
+
+    return this.articleService.create(articleData);
   }
 
   @Get()

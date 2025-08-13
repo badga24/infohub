@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString, MinLength } from "class-validator";
+import { CreateCategoryDto } from "src/category/dto/create-category.dto";
 
 export class CreateArticleDto {
     @IsString()
@@ -8,4 +9,9 @@ export class CreateArticleDto {
 
     @IsNotEmpty()
     content: Record<string, any>;
+    
+    categories: CreateCategoryDto[];
+
+    @IsNotEmpty()
+    author: number;
 }

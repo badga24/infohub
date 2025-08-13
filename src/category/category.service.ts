@@ -17,6 +17,16 @@ export class CategoryService {
     return this.categoryRepository.save(createCategoryDto);
   }
 
+  async findOrCreate(createCategoryDto: CreateCategoryDto) {
+    return this.categoryRepository.findOne({ where: { name: createCategoryDto.name } })
+      .then(category => {
+        if (category) {
+          return category;
+        }
+        return this.categoryRepository.save(createCategoryDto);
+      });
+  }
+
   findAll() {
     return this.categoryRepository.find();
   }

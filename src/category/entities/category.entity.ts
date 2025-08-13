@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Article } from "src/article/entities/article.entity";
+import { Column, CreateDateColumn, Entity, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
 export class Category {
@@ -8,6 +9,9 @@ export class Category {
 
     @Column({ type: 'varchar', length: 100 })
     name: string;
+
+    @ManyToMany(() => Article, article => article.categories)
+    articles: Article[];
 
     @CreateDateColumn()
     createdDate: Date;

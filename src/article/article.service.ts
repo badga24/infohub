@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { CreateArticleDto } from './dto/create-article.dto';
-import { UpdateArticleDto } from './dto/update-article.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Article } from './entities/article.entity';
 import { Repository } from 'typeorm';
+import { ICreateArticle } from './interfaces/create-article.interface';
+import { IUpdateArticle } from './interfaces/update-article.interface';
 
 @Injectable()
 export class ArticleService {
 
   constructor(
     @InjectRepository(Article) private readonly articleRepository: Repository<Article>
-  ) {}
+  ) { }
 
-  create(createArticleDto: CreateArticleDto) {
-    return this.articleRepository.save(createArticleDto);
+  create(createArticle: ICreateArticle) {
+    return this.articleRepository.save(createArticle);
   }
 
   findAll() {
@@ -21,11 +21,16 @@ export class ArticleService {
   }
 
   findOne(id: number) {
-    return this.articleRepository.findOne({ where: { id } });
+    return this.articleRepository.findOne({
+      where: { id }, relations: {
+        categories: true,
+        author: true
+      }
+    });
   }
 
-  update(id: number, updateArticleDto: UpdateArticleDto) {
-    return this.articleRepository.update(id, updateArticleDto);
+  update(id: number, updateArticle: IUpdateArticle) {
+    return this.articleRepository.update(id, updateArticle);
   }
 
   remove(id: number) {
