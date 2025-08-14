@@ -11,6 +11,8 @@ import { LocationModule } from './location/location.module';
 import { Location } from './location/entities/location.entity';
 import { TopicModule } from './topic/topic.module';
 import { Topic } from './topic/entities/topic.entity';
+import { EventModule } from './event/event.module';
+import { Event } from './event/entities/event.entity';
 
 @Module({
   imports: [
@@ -28,14 +30,16 @@ import { Topic } from './topic/entities/topic.entity';
         Category,
         Article,
         Location,
-        Topic
+        Topic,
+        Event
       ],
     }),
     PersonModule,
     CategoryModule,
     ArticleModule,
     LocationModule,
-    TopicModule
+    TopicModule,
+    EventModule
   ],
   controllers: [],
   providers: [],

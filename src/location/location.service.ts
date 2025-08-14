@@ -42,7 +42,14 @@ export class LocationService {
   }
 
   findOne(id: number) {
-    return this.locationRepository.findOneBy({ id });
+    const result = this.locationRepository.findOne({
+      where: { id },
+      relations: ['events'],
+    });
+    if (!result) {
+      throw new Error(`Location with ID ${id} not found`);
+    }
+    return result;
   }
 
   update(id: number, updateLocationDto: UpdateLocationDto) {

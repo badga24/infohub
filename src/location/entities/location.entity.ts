@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Event } from "src/event/entities/event.entity";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Location {
@@ -14,5 +15,8 @@ export class Location {
 
     @Column({ type: 'decimal', precision: 10, scale: 8 })
     lng?: number;
+
+    @OneToMany(() => Event, event => event.location)
+    events: Event[];
 
 }

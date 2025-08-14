@@ -1,5 +1,6 @@
+import { Event } from "src/event/entities/event.entity";
 import { Person } from "src/person/entities/person.entity";
-import { Column, CreateDateColumn, Entity, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
 export class Topic {
@@ -12,6 +13,9 @@ export class Topic {
 
     @ManyToMany(() => Person, person => person.topics)
     speakers: Person[];
+
+    @ManyToOne(() => Event, event => event.topics)
+    event: Event;
 
     @CreateDateColumn()
     createdDate: Date;

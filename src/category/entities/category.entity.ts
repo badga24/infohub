@@ -1,4 +1,5 @@
 import { Article } from "src/article/entities/article.entity";
+import { Event } from "src/event/entities/event.entity";
 import { Column, CreateDateColumn, Entity, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
@@ -12,6 +13,9 @@ export class Category {
 
     @ManyToMany(() => Article, article => article.categories)
     articles: Article[];
+
+    @ManyToMany(() => Event, event => event.categories)
+    events: Event[];
 
     @CreateDateColumn()
     createdDate: Date;
