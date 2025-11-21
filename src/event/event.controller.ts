@@ -12,9 +12,9 @@ import { Category } from 'src/category/entities/category.entity';
 export class EventController {
   constructor(
     private readonly eventService: EventService,
-    private readonly locationService: LocationService,
+    private readonly categoryService: CategoryService,
     private readonly topicService: TopicService,
-    private readonly categoryService: CategoryService
+    private readonly locationService: LocationService,
   ) {}
 
   @Post()

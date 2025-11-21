@@ -9,5 +9,6 @@ import { PersonModule } from 'src/person/person.module';
   imports: [TypeOrmModule.forFeature([Topic]), PersonModule],
   controllers: [TopicController],
   providers: [TopicService],
+  exports: [TopicService],
 })
 export class TopicModule {}

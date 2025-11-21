@@ -4,6 +4,7 @@ import { Article } from './entities/article.entity';
 import { Repository } from 'typeorm';
 import { ICreateArticle } from './interfaces/create-article.interface';
 import { IUpdateArticle } from './interfaces/update-article.interface';
+import { IPage } from 'src/interfaces/page.interface';
 
 @Injectable()
 export class ArticleService {
@@ -16,8 +17,24 @@ export class ArticleService {
     return this.articleRepository.save(createArticle);
   }
 
-  findAll() {
-    return this.articleRepository.find();
+  async findAll(page: number = 1, limit: number = 10): Promise<IPage<any>> {
+    const [results, total] = await this.articleRepository
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.categories', 'categories')
+      .leftJoinAndSelect('article.author', 'author')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: results,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPreviousPage: page > 1
+    }
   }
 
   findOne(id: number) {

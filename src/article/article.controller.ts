@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -32,8 +32,11 @@ export class ArticleController {
   }
 
   @Get()
-  findAll() {
-    return this.articleService.findAll();
+  findAll(@Query('page') page: number, @Query('limit') limit: number) {
+    return this.articleService.findAll(
+      page ? +page : 1,
+      limit ? +limit : 10
+    );
   }
 
   @Get(':id')
