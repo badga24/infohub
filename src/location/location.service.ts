@@ -4,7 +4,7 @@ import { UpdateLocationDto } from './dto/update-location.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Location } from './entities/location.entity';
-import { IPage } from 'src/interfaces/page.interface';
+import { IPage } from 'interfaces/page.interface';
 
 @Injectable()
 export class LocationService {

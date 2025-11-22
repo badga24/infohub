@@ -1,6 +1,6 @@
-import { Category } from "src/category/entities/category.entity";
-import { Location } from "src/location/entities/location.entity";
-import { Topic } from "src/topic/entities/topic.entity";
+import { Category } from "category/entities/category.entity";
+import { Location } from "location/entities/location.entity";
+import { Topic } from "topic/entities/topic.entity";
 import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()

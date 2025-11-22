@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, MinLength } from "class-validator";
-import { CreateCategoryDto } from "src/category/dto/create-category.dto";
+import { CreateCategoryDto } from "category/dto/create-category.dto";
 
 export class CreateArticleDto {
     @IsString()

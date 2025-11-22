@@ -2,8 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
-import { CategoryService } from 'src/category/category.service';
-import { PersonService } from 'src/person/person.service';
+import { CategoryService } from 'category/category.service';
+import { PersonService } from 'person/person.service';
 import { ICreateArticle } from './interfaces/create-article.interface';
 
 @Controller('article')

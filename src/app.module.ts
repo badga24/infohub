@@ -13,6 +13,8 @@ import { TopicModule } from './topic/topic.module';
 import { Topic } from './topic/entities/topic.entity';
 import { EventModule } from './event/event.module';
 import { Event } from './event/entities/event.entity';
+import { FileModule } from './file/file.module';
+import { FileModule } from './file/file.module';
 
 @Module({
   imports: [
@@ -39,7 +41,8 @@ import { Event } from './event/entities/event.entity';
     ArticleModule,
     LocationModule,
     TopicModule,
-    EventModule
+    EventModule,
+    FileModule
   ],
   controllers: [],
   providers: [],

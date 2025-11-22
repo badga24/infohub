@@ -1,5 +1,5 @@
-import { Article } from "src/article/entities/article.entity";
-import { Topic } from "src/topic/entities/topic.entity";
+import { Article } from "article/entities/article.entity";
+import { Topic } from "topic/entities/topic.entity";
 import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()

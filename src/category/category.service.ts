@@ -4,7 +4,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entities/category.entity';
 import { Repository } from 'typeorm';
-import { IPage } from 'src/interfaces/page.interface';
+import { IPage } from 'interfaces/page.interface';
 
 @Injectable()
 export class CategoryService {

@@ -4,7 +4,7 @@ import { Article } from './entities/article.entity';
 import { Repository } from 'typeorm';
 import { ICreateArticle } from './interfaces/create-article.interface';
 import { IUpdateArticle } from './interfaces/update-article.interface';
-import { IPage } from 'src/interfaces/page.interface';
+import { IPage } from 'interfaces/page.interface';
 
 @Injectable()
 export class ArticleService {

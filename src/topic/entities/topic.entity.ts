@@ -1,5 +1,5 @@
-import { Event } from "src/event/entities/event.entity";
-import { Person } from "src/person/entities/person.entity";
+import { Event } from "event/entities/event.entity";
+import { Person } from "person/entities/person.entity";
 import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()

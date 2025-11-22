@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { TopicService } from './topic.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
-import { PersonService } from 'src/person/person.service';
+import { PersonService } from 'person/person.service';
 import { ICreateTopic } from './interfaces/create-topic.interface';
 
 @Controller('topic')

@@ -1,5 +1,5 @@
-import { Category } from "src/category/entities/category.entity";
-import { Person } from "src/person/entities/person.entity";
+import { Category } from "category/entities/category.entity";
+import { Person } from "person/entities/person.entity";
 
 export interface ICreateArticle {
     title: string;

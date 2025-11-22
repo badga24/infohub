@@ -3,10 +3,10 @@ import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { ICreateEvent } from './interfaces/create-event.interface';
-import { LocationService } from 'src/location/location.service';
-import { TopicService } from 'src/topic/topic.service';
-import { CategoryService } from 'src/category/category.service';
-import { Category } from 'src/category/entities/category.entity';
+import { LocationService } from 'location/location.service';
+import { TopicService } from 'topic/topic.service';
+import { CategoryService } from 'category/category.service';
+import { Category } from 'category/entities/category.entity';
 
 @Controller('event')
 export class EventController {
