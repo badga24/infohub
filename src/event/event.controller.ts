@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -7,6 +7,7 @@ import { LocationService } from 'location/location.service';
 import { TopicService } from 'topic/topic.service';
 import { CategoryService } from 'category/category.service';
 import { Category } from 'category/entities/category.entity';
+import { AuthGuard } from 'guards/auth.guard';
 
 @Controller('event')
 export class EventController {
@@ -17,6 +18,7 @@ export class EventController {
     private readonly locationService: LocationService,
   ) {}
 
+  @UseGuards(AuthGuard)
   @Post()
   async create(@Body() createEventDto: CreateEventDto) {
 

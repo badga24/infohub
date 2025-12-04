@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class File {
@@ -8,7 +8,7 @@ export class File {
     @Column({ type: 'varchar', length: 100 })
     name: string;
 
-    @Column({ type: 'number'})
+    @Column({ type: 'bigint' })
     contentLength: number;
 
     @Column({ type: 'varchar', length: 50 })

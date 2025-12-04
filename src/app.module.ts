@@ -1,40 +1,28 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { PersonModule } from './person/person.module';
-import { Person } from './person/entities/person.entity';
 import { CategoryModule } from './category/category.module';
-import { Category } from './category/entities/category.entity';
 import { ArticleModule } from './article/article.module';
-import { Article } from './article/entities/article.entity';
 import { LocationModule } from './location/location.module';
-import { Location } from './location/entities/location.entity';
 import { TopicModule } from './topic/topic.module';
-import { Topic } from './topic/entities/topic.entity';
 import { EventModule } from './event/event.module';
-import { Event } from './event/entities/event.entity';
+import { UserModule } from './user/user.module';
 import { FileModule } from './file/file.module';
-import { FileModule } from './file/file.module';
+import { DbModule } from './db/db.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
+import { UsersController } from 'controllers/users.controller';
+import { EventsController } from 'controllers/event.controller';
+import { UsersUseCase } from 'use-case/users.use-case';
+import { Mapper } from 'mapper';
+import { EventsUseCase } from 'use-case/events.use-case';
 
 @Module({
   imports: [
     ConfigModule.forRoot({}),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DATABASE_HOST,
-      port: parseInt(process.env.DATABASE_PORT!, 10),
-      username: process.env.DATABASE_USERNAME,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
-      synchronize: process.env.NODE_ENV !== 'production',
-      entities: [
-        Person,
-        Category,
-        Article,
-        Location,
-        Topic,
-        Event
-      ],
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '30d' },
     }),
     PersonModule,
     CategoryModule,
@@ -42,9 +30,18 @@ import { FileModule } from './file/file.module';
     LocationModule,
     TopicModule,
     EventModule,
-    FileModule
+    FileModule,
+    UserModule,
+    DbModule
   ],
-  controllers: [],
-  providers: [],
+  controllers: [
+    UsersController,
+    EventsController
+  ],
+  providers: [
+    Mapper,
+    UsersUseCase,
+    EventsUseCase
+  ],
 })
-export class AppModule {}
+export class AppModule { }
