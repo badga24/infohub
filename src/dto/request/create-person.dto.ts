@@ -15,6 +15,6 @@ export class CreatePersonDto {
     @IsString()
     @IsNotEmpty()
     @IsEmail()
-    email: string;
+    email?: string;
     
 }

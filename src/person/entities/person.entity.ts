@@ -14,7 +14,7 @@ export class Person {
     @Column({ type: 'varchar', length: 50})
     lastName: string;
 
-    @Column({ type: 'varchar', length: 100 })
+    @Column({ type: 'varchar', length: 100, nullable: true })
     email: string;
 
     @ManyToMany(() => Topic, topic => topic.speakers)

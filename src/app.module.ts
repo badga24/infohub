@@ -18,7 +18,7 @@ import { EventsUseCase } from 'use-case/events.use-case';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({}),
+    ConfigModule.forRoot(),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,

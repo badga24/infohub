@@ -9,14 +9,16 @@ import { Topic } from 'topic/entities/topic.entity';
 import { User } from 'user/entities/user.entity';
 import { UserRole } from "user/entities/role.entity";
 import { Permission } from "user/entities/permission.entity";
-import { SeederOptions } from "typeorm-extension";
 
-export const dataSourceOptions: DataSourceOptions & SeederOptions = {
+export const dataSourceOptions: DataSourceOptions = {
     type: 'postgres',
     host: process.env.DATABASE_HOST,
     port: parseInt(process.env.DATABASE_PORT!, 10),
     username: process.env.DATABASE_USERNAME,
-    password: process.env.DATABASE_PASSWORD,
+    password: (() => {
+        console.log('Database Password:', process.env.DATABASE_PASSWORD);
+        return process.env.DATABASE_PASSWORD;
+    })(),
     database: process.env.DATABASE_NAME,
     synchronize: process.env.NODE_ENV !== 'production',
     entities: [
@@ -30,8 +32,5 @@ export const dataSourceOptions: DataSourceOptions & SeederOptions = {
         User,
         UserRole,
         Permission
-    ],
-    seeds: [
-        
     ]
 }

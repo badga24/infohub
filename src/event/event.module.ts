@@ -15,5 +15,6 @@ import { TopicModule } from 'topic/topic.module';
   ],
   controllers: [],
   providers: [EventService],
+  exports: [EventService],
 })
 export class EventModule {}
