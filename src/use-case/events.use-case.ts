@@ -3,6 +3,8 @@ import { CategoryService } from "category/category.service";
 import { Category } from "category/entities/category.entity";
 import { CreateEventDto } from "dto/request/create-event.dto";
 import { EventService } from "event/event.service";
+import { File } from "file/entities/file.entity";
+import { FileService } from "file/file.service";
 import { LocationService } from "location/location.service";
 import { Mapper } from "mapper";
 import { Person } from "person/entities/person.entity";
@@ -19,6 +21,7 @@ export class EventsUseCase {
         private readonly topicService: TopicService,
         private readonly personService: PersonService,
         private readonly categoryService: CategoryService,
+        private readonly fileService: FileService,
         private readonly mapper: Mapper
     ) { }
 
@@ -47,13 +50,19 @@ export class EventsUseCase {
             const category = await this.categoryService.create(categoryDto);
             categories.push(category);
         }
+        let cover: File | undefined = undefined;
+        if(dto.cover) {
+            cover = await this.fileService.create(dto.cover);
+        }
 
         const event = await this.eventService.create({
             name: dto.name,
             location: location,
             topics: topics,
             categories: categories,
+            cover: cover,
         })
+
 
         return this.mapper.toEventBasicDTO(event);
     }

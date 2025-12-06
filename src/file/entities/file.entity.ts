@@ -16,4 +16,11 @@ export class File {
 
     @Column({ type: 'boolean', default: false })
     isUploaded: boolean;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    partialPath: string | null;
+
+    getPath(): string {
+        return this.partialPath ? this.partialPath + '/' + this.id : '';
+    }
 }

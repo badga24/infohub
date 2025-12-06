@@ -1,7 +1,8 @@
 import { Category } from "category/entities/category.entity";
+import { File } from "file/entities/file.entity";
 import { Location } from "location/entities/location.entity";
 import { Topic } from "topic/entities/topic.entity";
-import { Column, CreateDateColumn, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
 export class Event {
@@ -21,6 +22,10 @@ export class Event {
     @ManyToMany(() => Category, category => category.events)
     @JoinTable()
     categories: Category[];
+
+    @OneToOne(() => File, { nullable: true })
+    @JoinColumn()
+    cover: File;
 
     @CreateDateColumn()
     createdDate: Date;

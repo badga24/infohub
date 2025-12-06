@@ -15,15 +15,13 @@ import { EventsController } from 'controllers/event.controller';
 import { UsersUseCase } from 'use-case/users.use-case';
 import { Mapper } from 'mapper';
 import { EventsUseCase } from 'use-case/events.use-case';
+import { AppConfigModule } from './config/app-config.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    JwtModule.register({
-      global: true,
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '30d' },
-    }),
+    DbModule,
+    AppConfigModule,
     PersonModule,
     CategoryModule,
     ArticleModule,
@@ -31,8 +29,7 @@ import { EventsUseCase } from 'use-case/events.use-case';
     TopicModule,
     EventModule,
     FileModule,
-    UserModule,
-    DbModule
+    UserModule
   ],
   controllers: [
     UsersController,
