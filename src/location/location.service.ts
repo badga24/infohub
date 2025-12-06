@@ -27,7 +27,7 @@ export class LocationService {
       .getManyAndCount()
 
     return {
-      data: results,
+      content: results,
       total,
       page,
       limit,

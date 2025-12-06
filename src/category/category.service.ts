@@ -52,7 +52,7 @@ export class CategoryService {
       .getManyAndCount();
 
     return {
-      data: results,
+      content: results,
       total,
       page,
       limit,

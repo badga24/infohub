@@ -48,7 +48,7 @@ export class PersonService {
       .getManyAndCount();
 
     return {
-      data: results,
+      content: results,
       total,
       page,
       limit,

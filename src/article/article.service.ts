@@ -27,7 +27,7 @@ export class ArticleService {
       .getManyAndCount();
 
     return {
-      data: results,
+      content: results,
       total,
       page,
       limit,

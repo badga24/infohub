@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
 import { Repository } from 'typeorm';
 import { IUpdateEvent } from './interfaces/update-event.interface';
+import { IPage } from 'interfaces/page.interface';
 
 @Injectable()
 export class EventService {
@@ -16,13 +17,23 @@ export class EventService {
     return this.eventRepository.save(createEvent);
   }
 
-  findAll() {
-    return this.eventRepository.find({
-      relations: {
-        location: true,
-        categories: true,
-      },
-    });
+  async findAll(page: number = 0, limit: number = 10): Promise<IPage<any>> {
+
+    const [results, total] = await this.eventRepository
+      .createQueryBuilder('event')
+      .skip(page * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      content: results,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPreviousPage: page > 1
+    };
   }
 
   findOne(id: number) {

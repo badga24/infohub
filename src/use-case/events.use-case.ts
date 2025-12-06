@@ -58,4 +58,12 @@ export class EventsUseCase {
         return this.mapper.toEventBasicDTO(event);
     }
 
+    @Transactional()
+    async getAllEvents(page?: number, limit?: number) {
+        const results = await this.eventService.findAll(page, limit);
+        const contentMapped = results.content.map(event => this.mapper.toEventBasicDTO(event));
+        results.content = contentMapped;
+        return results;
+    }
+
 }

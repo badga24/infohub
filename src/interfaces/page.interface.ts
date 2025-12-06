@@ -1,5 +1,5 @@
 export interface IPage<T> {
-    data: T[];
+    content: T[];
     total: number;
     page: number;
     limit: number;
