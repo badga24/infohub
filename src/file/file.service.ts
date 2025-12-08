@@ -7,6 +7,7 @@ import { File } from './entities/file.entity';
 import { IAppFilesStorageService } from 'interfaces/app-files-storage-service.interface';
 import { FirebaseService } from 'file/services/firebase.service';
 import { ConfigService } from '@nestjs/config';
+import { EAppContentType } from 'enums/app-content-type.enym';
 
 @Injectable()
 export class FileService {
@@ -50,10 +51,38 @@ export class FileService {
   }
 
   create(partialPath: string, createFileDto: CreateFileDto) {
+    this.validateContentType(EAppContentType.IMAGE, createFileDto.contentType);
     return this.fileRepository.save({
       ...createFileDto,
       partialPath: partialPath,
     });
+  }
+
+  validateContentType(excpected: EAppContentType, actual: string) {
+    switch (excpected) {
+      case EAppContentType.IMAGE:
+        if (actual !== "image/png" && actual !== "image/jpg" && actual !== "image/jpeg" && actual !== "image/webp") {
+          throw new Error("Invalid content type. Accepted types are png, jpg, jpeg and webp.");
+        }
+        break;
+      case EAppContentType.VIDEO:
+        if (!actual.startsWith("video/")) {
+          throw new Error("Invalid content type. Expected a video.");
+        }
+        break;
+      case EAppContentType.AUDIO:
+        if (!actual.startsWith("audio/")) {
+          throw new Error("Invalid content type. Expected an audio.");
+        }
+        break;
+      case EAppContentType.DOCUMENT:
+        if (!actual.startsWith("application/")) {
+          throw new Error("Invalid content type. Expected a document.");
+        }
+        break;
+      default:
+        throw new Error("Unsupported content type.");
+    }
   }
 
   findAll() {
