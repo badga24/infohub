@@ -5,7 +5,7 @@ import { EventsUseCase } from "use-case/events.use-case";
 
 @Controller("event")
 export class EventsController {
-    constructor(private readonly eventsUseCase: EventsUseCase) {}
+    constructor(private readonly eventsUseCase: EventsUseCase) { }
 
     @UseGuards(AuthGuard)
     @Post()

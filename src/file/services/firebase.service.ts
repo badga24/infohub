@@ -1,8 +1,8 @@
 import { InternalServerErrorException } from "@nestjs/common";
 import { File } from "file/entities/file.entity";
-import { initializeApp } from "firebase-admin";
+import * as admin from "firebase-admin";
 import { App } from "firebase-admin/app";
-import { getStorage, Storage } from "firebase-admin/storage";
+import { Storage } from "firebase-admin/storage";
 import { IAppFilesStorageService } from "interfaces/app-files-storage-service.interface";
 
 export class FirebaseService implements IAppFilesStorageService {
@@ -10,26 +10,39 @@ export class FirebaseService implements IAppFilesStorageService {
     private app: App;
     private storage: Storage;
 
-    constructor() {
-        const apiKey = process.env.FIREBASE_API_KEY;
-        const authDomain = process.env.FIREBASE_AUTH_DOMAIN;
-        const projectId = process.env.FIREBASE_PROJECT_ID;
-        const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
-        const messagingSenderId = process.env.FIREBASE_MESSAGING_SENDER_ID;
-        const appId = process.env.FIREBASE_APP_ID;
-        const measurementId = process.env.FIREBASE_MEASUREMENT_ID;
-
+    constructor(
+        private readonly type: string,
+        private readonly projectId: string,
+        private readonly privateKeyId: string,
+        private readonly privateKey: string,
+        private readonly clientEmail: string,
+        private readonly clientId: string,
+        private readonly authUri: string,
+        private readonly tokenUri: string,
+        private readonly authProviderX509CertUrl: string,
+        private readonly clientX509CertUrl: string,
+        private readonly universeDomain: string,
+        private readonly storageBucket: string,
+    ) {
+        const config = {
+            type: this.type,
+            projectId: this.projectId,
+            privateKeyId: this.privateKeyId,
+            privateKey: this.privateKey?.replace(/\\n/g, '\n'),
+            clientEmail: this.clientEmail,
+            clientId: this.clientId,
+            authUri: this.authUri,
+            tokenUri: this.tokenUri,
+            authProviderX509CertUrl: this.authProviderX509CertUrl,
+            clientX509CertUrl: this.clientX509CertUrl,
+            universeDomain: this.universeDomain,
+        } as admin.ServiceAccount
         const firebaseConfig = {
-            apiKey: apiKey,
-            authDomain: authDomain,
-            projectId: projectId,
-            storageBucket: storageBucket,
-            messagingSenderId: messagingSenderId,
-            appId: appId,
-            measurementId: measurementId
+            credential: admin.credential.cert(config),
+            storageBucket: this.storageBucket,
         }
-        this.app = initializeApp(firebaseConfig);
-        this.storage = getStorage(this.app);
+        this.app = admin.initializeApp(firebaseConfig);
+        this.storage = admin.storage(this.app);
     }
 
     async downloadSignedUrl(file: File): Promise<string> {

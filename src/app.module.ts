@@ -16,6 +16,8 @@ import { UsersUseCase } from 'use-case/users.use-case';
 import { Mapper } from 'mapper';
 import { EventsUseCase } from 'use-case/events.use-case';
 import { AppConfigModule } from './config/app-config.module';
+import { FileUseCase } from 'use-case/file.use-case';
+import { FileController } from 'controllers/file.controller';
 
 @Module({
   imports: [
@@ -33,12 +35,14 @@ import { AppConfigModule } from './config/app-config.module';
   ],
   controllers: [
     UsersController,
-    EventsController
+    EventsController,
+    FileController
   ],
   providers: [
     Mapper,
     UsersUseCase,
-    EventsUseCase
+    EventsUseCase,
+    FileUseCase
   ],
 })
 export class AppModule { }

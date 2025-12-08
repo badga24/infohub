@@ -6,11 +6,6 @@ import { CreateFileDto } from './dto/create-file.dto';
 export class FileController {
   constructor(private readonly fileService: FileService) { }
 
-  @Post()
-  create(@Body() createFileDto: CreateFileDto) {
-    return this.fileService.create(createFileDto);
-  }
-
   @Get(':id/download')
   getDownloadLink(@Param('id') id: number) {
     return this.fileService.getDownloadLink(id);

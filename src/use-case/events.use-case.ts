@@ -3,6 +3,7 @@ import { CategoryService } from "category/category.service";
 import { Category } from "category/entities/category.entity";
 import { CreateEventDto } from "dto/request/create-event.dto";
 import { EventService } from "event/event.service";
+import { CreateFileDto } from "file/dto/create-file.dto";
 import { File } from "file/entities/file.entity";
 import { FileService } from "file/file.service";
 import { LocationService } from "location/location.service";
@@ -50,21 +51,28 @@ export class EventsUseCase {
             const category = await this.categoryService.create(categoryDto);
             categories.push(category);
         }
-        let cover: File | undefined = undefined;
-        if(dto.cover) {
-            cover = await this.fileService.create(dto.cover);
-        }
 
         const event = await this.eventService.create({
             name: dto.name,
             location: location,
             topics: topics,
             categories: categories,
-            cover: cover,
         })
 
+        let cover: File | undefined = undefined;
+        if(dto.cover) {
+            cover = await this.fileService.create(event!.id!.toString(), dto.cover);
+            event.cover = cover;
+        }
 
         return this.mapper.toEventBasicDTO(event);
+    }
+
+    @Transactional()
+    async addCover(id: number, createFileDto: CreateFileDto) {
+        const event = await this.eventService.findOne(id);
+        const file = await this.fileService.create(event!.id!.toString(), createFileDto);
+        return this.mapper.toFileBasicDTO(file);
     }
 
     @Transactional()

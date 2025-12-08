@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Category } from "category/entities/category.entity";
 import { CategoryBasicDTO } from "dto/responses/category/category-basic.dto";
-import { EventBasicDTO } from "dto/responses/event/even-basic.dto";
+import { EventBasicDTO } from "dto/responses/event/event-basic.dto";
 import { FileBasicDTO } from "dto/responses/file/file-basic.dto";
 import { LocationBasicDTO } from "dto/responses/location/location-basic.dto";
 import { PersonBasicDTO } from "dto/responses/person/person-basic.dto";
@@ -70,6 +70,7 @@ export class Mapper {
     toFileBasicDTO(file: File): FileBasicDTO {
         return {
             id: file.id,
+            name: file.name,
             contentType: file.contentType,
             contentLength: file.contentLength
         };
