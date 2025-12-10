@@ -5,6 +5,7 @@ import { Topic } from "topic/entities/topic.entity";
 
 export interface ICreateEvent {
     name: string;
+    date: Date;
     location: Location;
     topics: Topic[];
     categories: Category[];

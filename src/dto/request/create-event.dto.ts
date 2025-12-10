@@ -15,6 +15,9 @@ export class CreateEventDto {
     @IsNotEmpty()
     location: CreateLocationDto;
 
+    @IsNotEmpty()
+    date: Date;
+
     topics: CreateTopicDto[];
 
     categories: CreateCategoryDto[];

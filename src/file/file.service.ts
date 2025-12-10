@@ -117,8 +117,9 @@ export class FileService {
     return this.fileRepository.update(id, updateFileDto);
   }
 
-  remove(id: number) {
-    return this.fileRepository.delete(id);
+  async remove(file: File) {
+    await this.app.deleteFile(file.getPath());
+    return this.fileRepository.delete(file.id);
   }
 
   confirmUpload(id: number) {

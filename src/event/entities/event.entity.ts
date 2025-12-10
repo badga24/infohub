@@ -27,6 +27,9 @@ export class Event {
     @JoinColumn()
     cover: File;
 
+    @Column({ type: 'date', default: () => 'CURRENT_DATE' })
+    date: Date;
+
     @CreateDateColumn()
     createdDate: Date;
 

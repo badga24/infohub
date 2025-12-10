@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { Category } from "category/entities/category.entity";
 import { CategoryBasicDTO } from "dto/responses/category/category-basic.dto";
 import { EventBasicDTO } from "dto/responses/event/event-basic.dto";
@@ -16,6 +16,7 @@ import { User } from "user/entities/user.entity";
 
 @Injectable()
 export class Mapper {
+  private readonly logger: Logger = new Logger(Mapper.name);
 
     toUserBasicDTO(user: User): UserBasicDto {
         return {

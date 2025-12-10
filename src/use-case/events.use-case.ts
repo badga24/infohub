@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { CategoryService } from "category/category.service";
 import { Category } from "category/entities/category.entity";
-import { CreateEventDto } from "dto/request/create-event.dto";
+import { CreateEventDto, UpdateEventDto } from "dto/request";
 import { EventService } from "event/event.service";
 import { CreateFileDto } from "file/dto/create-file.dto";
 import { File } from "file/entities/file.entity";
@@ -29,6 +29,7 @@ export class EventsUseCase {
     @Transactional()
     async createEvent(dto: CreateEventDto) {
         const location = await this.locationService.create(dto.location);
+
         const topics: Topic[] = [];
         for (let i = 0; i < dto.topics.length; i++) {
             const topic = dto.topics[i];
@@ -54,6 +55,7 @@ export class EventsUseCase {
 
         const event = await this.eventService.create({
             name: dto.name,
+            date: dto.date,
             location: location,
             topics: topics,
             categories: categories,
@@ -68,16 +70,36 @@ export class EventsUseCase {
         return this.mapper.toEventBasicDTO(event);
     }
 
-    @Transactional()
-    async addCover(id: number, createFileDto: CreateFileDto) {
-        const event = await this.eventService.findOne(id);
-        const file = await this.fileService.create(event!.id!.toString(), createFileDto);
-        return this.mapper.toFileBasicDTO(file);
+    async updateEvent(id: number, dto: UpdateEventDto) {
+        await this.eventService.update(id, dto);
     }
 
     @Transactional()
-    async getAllEvents(page?: number, limit?: number) {
-        const results = await this.eventService.findAll(page, limit);
+    async deleteEvent(id: number) {
+        const event = await this.eventService.findOne(id);
+        if (event?.cover != null) {
+            await this.fileService.remove(event.cover);
+        }
+        await this.eventService.remove(id);
+    }
+
+    @Transactional()
+    async addCover(id: number, createFileDto: CreateFileDto) {
+        const event = await this.eventService.findOne(id);
+        if (event?.cover != null) {
+            await this.fileService.remove(event.cover);
+        }
+        const file = await this.fileService.create(event!.id!.toString(), createFileDto);
+        await this.eventService.setCover(id, file);
+    }
+
+    findOne(id: number) {
+        return this.eventService.findOne(id);
+    }
+
+    @Transactional()
+    async getAllEvents(page?: number, limit?: number, from?: Date, to?: Date) {
+        const results = await this.eventService.findAll(page, limit, from, to);
         const contentMapped = results.content.map(event => this.mapper.toEventBasicDTO(event));
         results.content = contentMapped;
         return results;
