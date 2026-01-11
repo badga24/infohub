@@ -89,7 +89,7 @@ Controllers handle incoming HTTP requests and return responses to the client.
 **Example:**
 
 ```typescript
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 
@@ -297,7 +297,16 @@ This layer manages database interactions using TypeORM.
 **Example Entity:**
 
 ```typescript
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, ManyToOne } from 'typeorm';
+import { 
+  Entity, 
+  Column, 
+  PrimaryGeneratedColumn, 
+  ManyToMany, 
+  ManyToOne,
+  JoinTable,
+  CreateDateColumn,
+  UpdateDateColumn
+} from 'typeorm';
 import { Category } from '../category/entities/category.entity';
 import { Person } from '../person/entities/person.entity';
 
