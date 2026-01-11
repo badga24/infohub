@@ -6,6 +6,10 @@ A backend built with **NestJs**, serving as a foundation for managing **blog art
 - Blog **articles** management
 - **Events** management
 
+## 📚 Documentation
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Detailed architecture documentation specific to this project
+- [NESTJS_ARCHITECTURE_GUIDE.md](./NESTJS_ARCHITECTURE_GUIDE.md) - General NestJS architecture guide for future projects
+
 ## ⚙️ Configuration
 Create a `.env` file at the root of the project and use the values from **.env.example** as a reference.
 
