@@ -531,11 +531,6 @@ NODE_ENV=development
 
 # JWT
 JWT_SECRET=your-secret-key-here
-
-# Optional: External Services
-# FIREBASE_PROJECT_ID=your-project-id
-# FIREBASE_CLIENT_EMAIL=your-client-email
-# FIREBASE_PRIVATE_KEY=your-private-key
 ```
 
 ### Using Configuration
