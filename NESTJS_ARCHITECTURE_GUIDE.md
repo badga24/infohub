@@ -100,9 +100,9 @@ Controllers should **never** call services directly. All business logic should b
 **Example:**
 
 ```typescript
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ArticleUseCase } from './article.use-case';
-import { CreateArticleDto } from './dto/create-article.dto';
+import { CreateArticleDto, UpdateArticleDto } from './dto/create-article.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -964,6 +964,7 @@ A User account may be linked to a Person entity, but they serve different purpos
 import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Person } from '../person/entities/person.entity';
+import { Role } from '../role/entities/role.entity';
 
 @Entity()
 export class User {
@@ -995,6 +996,7 @@ export class User {
 
 ```typescript
 import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Permission } from '../permission/entities/permission.entity';
 
 @Entity()
 export class Role {
@@ -1461,13 +1463,14 @@ export class PermissionsGuard implements CanActivate {
 #### Using RBAC and Permissions Together
 
 ```typescript
-import { Controller, Get, Post, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../guards/auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { ArticleUseCase } from '../use-case/article.use-case';
+import { CreateArticleDto } from '../dto/request/create-article.dto';
 
 @Controller('articles')
 @UseGuards(AuthGuard) // All routes require authentication
