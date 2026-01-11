@@ -91,6 +91,8 @@ Controllers handle incoming HTTP requests and return responses to the client.
 ```typescript
 import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { ArticleService } from './article.service';
+import { CategoryService } from '../category/category.service';
+import { PersonService } from '../person/person.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 
 @Controller('article')
@@ -157,6 +159,15 @@ Use cases encapsulate complex business workflows that involve multiple services 
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { Transactional } from 'typeorm-transactional';
+import { EventService } from '../event/event.service';
+import { LocationService } from '../location/location.service';
+import { TopicService } from '../topic/topic.service';
+import { PersonService } from '../person/person.service';
+import { CategoryService } from '../category/category.service';
+import { FileService } from '../file/file.service';
+import { Mapper } from '../mapper/mapper';
+import { CreateEventDto } from '../dto/request/create-event.dto';
+import { Topic } from '../topic/entities/topic.entity';
 
 @Injectable()
 export class EventsUseCase {
