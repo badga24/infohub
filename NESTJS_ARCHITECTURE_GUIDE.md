@@ -24,10 +24,13 @@ NestJS is a progressive Node.js framework for building efficient, reliable, and 
 ### Core Principles
 
 - **Separation of Concerns**: Each layer has a specific responsibility
+- **Controllers → Use Cases Only**: Controllers never call services directly; all business logic flows through use cases
 - **Dependency Injection**: NestJS's built-in DI container manages dependencies
 - **Modularity**: Features are organized into self-contained modules
 - **Type Safety**: Full TypeScript support throughout the application
 - **Testability**: Clear boundaries enable easy unit and integration testing
+- **User vs Person**: Separate User (authentication) from Person (domain entity)
+- **RBAC + Permissions**: Implement both role-based and permission-based access control
 
 ---
 
@@ -82,49 +85,40 @@ Controllers handle incoming HTTP requests and return responses to the client.
 **Responsibilities:**
 - Route HTTP requests to appropriate handlers
 - Parse and validate request data using DTOs
-- Call use cases or services to process business logic
+- **Always call use cases to handle business logic (never call services directly)**
 - Return HTTP responses with appropriate status codes
 - API documentation (Swagger annotations)
+
+**Important Rule: Controllers → Use Cases → Services**
+
+Controllers should **never** call services directly. All business logic should be orchestrated through use cases. This ensures:
+- Consistent transaction management
+- Proper separation of concerns
+- Easier testing and maintenance
+- Centralized business logic coordination
 
 **Example:**
 
 ```typescript
 import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
-import { ArticleService } from './article.service';
-import { CategoryService } from '../category/category.service';
-import { PersonService } from '../person/person.service';
+import { ArticleUseCase } from './article.use-case';
 import { CreateArticleDto } from './dto/create-article.dto';
 
 @Controller('article')
 export class ArticleController {
   constructor(
-    private readonly articleService: ArticleService,
-    private readonly categoryService: CategoryService,
-    private readonly personService: PersonService
+    private readonly articleUseCase: ArticleUseCase
   ) {}
 
   @Post()
   async create(@Body() createArticleDto: CreateArticleDto) {
-    // Coordinate services to prepare data
-    const author = await this.personService.findOne(createArticleDto.author);
-    const categories = await Promise.all(
-      createArticleDto.categories.map(category => 
-        this.categoryService.findOrCreate(category)
-      )
-    );
-
-    // Call service with prepared data
-    return this.articleService.create({
-      title: createArticleDto.title,
-      content: createArticleDto.content,
-      categories,
-      author
-    });
+    // Controller only calls use case, never services directly
+    return this.articleUseCase.createArticle(createArticleDto);
   }
 
   @Get()
   findAll(@Query('page') page: number, @Query('limit') limit: number) {
-    return this.articleService.findAll(
+    return this.articleUseCase.getAllArticles(
       page ? +page : 1,
       limit ? +limit : 10
     );
@@ -132,7 +126,17 @@ export class ArticleController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.articleService.findOne(+id);
+    return this.articleUseCase.getArticleById(+id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
+    return this.articleUseCase.updateArticle(+id, updateArticleDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.articleUseCase.deleteArticle(+id);
   }
 }
 ```
@@ -153,8 +157,77 @@ Use cases encapsulate complex business workflows that involve multiple services 
 - Operations requiring transactions
 - Business logic that spans multiple domains
 - Authentication and authorization workflows
+- **All controller actions (controllers should never call services directly)**
 
 **Example:**
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Transactional } from 'typeorm-transactional';
+import { ArticleService } from '../article/article.service';
+import { CategoryService } from '../category/category.service';
+import { PersonService } from '../person/person.service';
+import { CreateArticleDto } from '../dto/request/create-article.dto';
+import { UpdateArticleDto } from '../dto/request/update-article.dto';
+import { Mapper } from '../mapper/mapper';
+
+@Injectable()
+export class ArticleUseCase {
+  constructor(
+    private readonly articleService: ArticleService,
+    private readonly categoryService: CategoryService,
+    private readonly personService: PersonService,
+    private readonly mapper: Mapper
+  ) {}
+
+  @Transactional()
+  async createArticle(dto: CreateArticleDto) {
+    // Use case coordinates multiple services
+    const author = await this.personService.findOne(dto.author);
+    const categories = await Promise.all(
+      dto.categories.map(category => 
+        this.categoryService.findOrCreate(category)
+      )
+    );
+
+    const article = await this.articleService.create({
+      title: dto.title,
+      content: dto.content,
+      categories,
+      author
+    });
+
+    return this.mapper.toArticleDTO(article);
+  }
+
+  async getAllArticles(page: number, limit: number) {
+    const result = await this.articleService.findAll(page, limit);
+    result.content = result.content.map(article => 
+      this.mapper.toArticleDTO(article)
+    );
+    return result;
+  }
+
+  async getArticleById(id: number) {
+    const article = await this.articleService.findOne(id);
+    return this.mapper.toArticleDTO(article);
+  }
+
+  @Transactional()
+  async updateArticle(id: number, dto: UpdateArticleDto) {
+    await this.articleService.update(id, dto);
+    const updated = await this.articleService.findOne(id);
+    return this.mapper.toArticleDTO(updated);
+  }
+
+  @Transactional()
+  async deleteArticle(id: number) {
+    await this.articleService.remove(id);
+  }
+}
+```
+
+**Complex Use Case Example:**
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -878,9 +951,19 @@ npm install -D @types/bcrypt
 
 ### User Entity with Password Hashing
 
+**Important: User vs Person Distinction**
+
+- **User Entity**: Contains only authentication-related data (username, password, roles)
+- **Person Entity**: Contains actual person information (name, bio, profile, etc.)
+
+A User account may be linked to a Person entity, but they serve different purposes:
+- User: For authentication and authorization
+- Person: For representing an individual in the domain (authors, speakers, etc.)
+
 ```typescript
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Person } from '../person/entities/person.entity';
 
 @Entity()
 export class User {
@@ -893,10 +976,85 @@ export class User {
   @Column()
   password: string;
 
+  @ManyToMany(() => Role)
+  @JoinTable()
+  roles: Role[];
+
+  // Optional: Link to Person entity if this user represents a person in the system
+  @ManyToOne(() => Person, { nullable: true })
+  person?: Person;
+
   @BeforeInsert()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);
   }
+}
+```
+
+### Role and Permission Entities
+
+```typescript
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+
+@Entity()
+export class Role {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ unique: true })
+  name: string; // e.g., 'admin', 'moderator', 'user'
+
+  @Column({ nullable: true })
+  description: string;
+
+  @ManyToMany(() => Permission)
+  @JoinTable()
+  permissions: Permission[];
+}
+
+@Entity()
+export class Permission {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ unique: true })
+  name: string; // e.g., 'articles.create', 'events.delete', 'users.manage'
+
+  @Column({ nullable: true })
+  description: string;
+
+  @Column()
+  resource: string; // e.g., 'articles', 'events', 'users'
+
+  @Column()
+  action: string; // e.g., 'create', 'read', 'update', 'delete'
+}
+```
+
+### Person Entity (Separate from User)
+
+```typescript
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity()
+export class Person {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column({ nullable: true })
+  bio: string;
+
+  @Column({ nullable: true })
+  email: string;
+
+  @Column({ nullable: true })
+  avatarUrl: string;
+
+  // Person represents domain entities like authors, speakers, etc.
+  // Separate from User which handles authentication
 }
 ```
 
@@ -942,9 +1100,10 @@ export class UserService {
 import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
+import { RegisterDto, LoginDto } from '../dto/request';
 
 @Injectable()
-export class UsersUseCase {
+export class AuthUseCase {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService
@@ -966,21 +1125,176 @@ export class UsersUseCase {
     };
   }
 
-  async authenticate(authenticateDto: AuthenticateUserDto) {
+  async login(loginDto: LoginDto) {
     const user = await this.userService.findOneByUsername(
-      authenticateDto.username
+      loginDto.username
     );
     
-    if (!user || !(await this.userService.validateUserPassword(user, authenticateDto.password))) {
+    if (!user || !(await this.userService.validateUserPassword(user, loginDto.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
     
-    const accessToken = await this.jwtService.signAsync({
+    const payload = {
       username: user.username,
-      sub: user.id
-    });
+      sub: user.id,
+      roles: user.roles?.map(r => r.name) || []
+    };
     
-    return { accessToken };
+    const accessToken = await this.jwtService.signAsync(payload);
+    const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: '7d' });
+    
+    return { 
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        username: user.username
+      }
+    };
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync(refreshToken);
+      const accessToken = await this.jwtService.signAsync({
+        username: payload.username,
+        sub: payload.sub,
+        roles: payload.roles
+      });
+      return { accessToken };
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+}
+```
+
+### User Management Use Case (Separate from Auth)
+
+```typescript
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { UserService } from '../user/user.service';
+import { UpdateUserDto, AssignRoleDto } from '../dto/request';
+
+@Injectable()
+export class UserManagementUseCase {
+  constructor(
+    private readonly userService: UserService
+  ) {}
+
+  async getAllUsers(page: number, limit: number) {
+    return this.userService.findAll(page, limit);
+  }
+
+  async getUserById(id: number) {
+    const user = await this.userService.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async updateUser(id: number, dto: UpdateUserDto) {
+    await this.userService.update(id, dto);
+    return this.getUserById(id);
+  }
+
+  async deleteUser(id: number) {
+    await this.userService.remove(id);
+  }
+
+  async assignRole(userId: number, dto: AssignRoleDto) {
+    return this.userService.assignRole(userId, dto.roleId);
+  }
+
+  async revokeRole(userId: number, roleId: number) {
+    return this.userService.revokeRole(userId, roleId);
+  }
+}
+```
+
+### Separate Controllers: Authentication vs User Management
+
+**Authentication Controller** - Handles login, register, refresh token:
+
+```typescript
+import { Controller, Post, Body } from '@nestjs/common';
+import { AuthUseCase } from '../use-case/auth.use-case';
+import { RegisterDto, LoginDto, RefreshTokenDto } from '../dto/request';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authUseCase: AuthUseCase) {}
+
+  @Post('register')
+  register(@Body() registerDto: RegisterDto) {
+    return this.authUseCase.register(registerDto);
+  }
+
+  @Post('login')
+  login(@Body() loginDto: LoginDto) {
+    return this.authUseCase.login(loginDto);
+  }
+
+  @Post('refresh')
+  refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authUseCase.refreshToken(refreshTokenDto.refreshToken);
+  }
+}
+```
+
+**User Management Controller** - Handles user CRUD operations:
+
+```typescript
+import { Controller, Get, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { UserManagementUseCase } from '../use-case/user-management.use-case';
+import { UpdateUserDto, AssignRoleDto } from '../dto/request';
+import { AuthGuard } from '../guards/auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../decorators/roles.decorator';
+
+@Controller('users')
+@UseGuards(AuthGuard, RolesGuard)
+export class UsersController {
+  constructor(private readonly userManagementUseCase: UserManagementUseCase) {}
+
+  @Get()
+  @Roles('admin', 'moderator')
+  findAll(@Query('page') page: number, @Query('limit') limit: number) {
+    return this.userManagementUseCase.getAllUsers(
+      page ? +page : 1,
+      limit ? +limit : 10
+    );
+  }
+
+  @Get(':id')
+  @Roles('admin', 'moderator')
+  findOne(@Param('id') id: string) {
+    return this.userManagementUseCase.getUserById(+id);
+  }
+
+  @Put(':id')
+  @Roles('admin')
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.userManagementUseCase.updateUser(+id, updateUserDto);
+  }
+
+  @Delete(':id')
+  @Roles('admin')
+  remove(@Param('id') id: string) {
+    return this.userManagementUseCase.deleteUser(+id);
+  }
+
+  @Post(':id/roles')
+  @Roles('admin')
+  assignRole(@Param('id') id: string, @Body() assignRoleDto: AssignRoleDto) {
+    return this.userManagementUseCase.assignRole(+id, assignRoleDto);
+  }
+
+  @Delete(':id/roles/:roleId')
+  @Roles('admin')
+  revokeRole(@Param('id') id: string, @Param('roleId') roleId: string) {
+    return this.userManagementUseCase.revokeRole(+id, +roleId);
   }
 }
 ```
@@ -1039,31 +1353,207 @@ export class ProtectedController {
 }
 ```
 
-### Authentication Flow
+### Role-Based Access Control (RBAC) and Permission-Based Authorization
+
+NestJS supports both **Role-Based Access Control (RBAC)** and **Permission-Based Access Control** for fine-grained authorization.
+
+#### Roles Decorator
+
+```typescript
+import { SetMetadata } from '@nestjs/common';
+
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+```
+
+#### Permissions Decorator
+
+```typescript
+import { SetMetadata } from '@nestjs/common';
+
+export const PERMISSIONS_KEY = 'permissions';
+export const RequirePermissions = (...permissions: string[]) => 
+  SetMetadata(PERMISSIONS_KEY, permissions);
+```
+
+#### Roles Guard (RBAC)
+
+```typescript
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    
+    if (!requiredRoles) {
+      return true; // No roles required
+    }
+    
+    const { user } = context.switchToHttp().getRequest();
+    
+    // user.roles should be populated from JWT token
+    return requiredRoles.some((role) => user.roles?.includes(role));
+  }
+}
+```
+
+#### Permissions Guard (Fine-Grained Control)
+
+```typescript
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { UserService } from '../user/user.service';
+
+@Injectable()
+export class PermissionsGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    private userService: UserService
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()]
+    );
+    
+    if (!requiredPermissions) {
+      return true; // No permissions required
+    }
+    
+    const { user } = context.switchToHttp().getRequest();
+    
+    // Load user with roles and permissions from database
+    const fullUser = await this.userService.findByIdWithPermissions(user.sub);
+    
+    if (!fullUser) {
+      throw new ForbiddenException('User not found');
+    }
+    
+    // Extract all permissions from user's roles
+    const userPermissions = fullUser.roles
+      .flatMap(role => role.permissions)
+      .map(permission => permission.name);
+    
+    // Check if user has all required permissions
+    const hasAllPermissions = requiredPermissions.every(permission =>
+      userPermissions.includes(permission)
+    );
+    
+    if (!hasAllPermissions) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+    
+    return true;
+  }
+}
+```
+
+#### Using RBAC and Permissions Together
+
+```typescript
+import { Controller, Get, Post, Delete, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../guards/auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { Roles } from '../decorators/roles.decorator';
+import { RequirePermissions } from '../decorators/permissions.decorator';
+import { ArticleUseCase } from '../use-case/article.use-case';
+
+@Controller('articles')
+@UseGuards(AuthGuard) // All routes require authentication
+export class ArticlesController {
+  constructor(private readonly articleUseCase: ArticleUseCase) {}
+
+  @Get()
+  // Public read access for authenticated users
+  findAll() {
+    return this.articleUseCase.getAllArticles(1, 10);
+  }
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles('admin', 'moderator', 'author') // Role-based: any of these roles can create
+  create(@Body() createArticleDto: CreateArticleDto) {
+    return this.articleUseCase.createArticle(createArticleDto);
+  }
+
+  @Delete(':id')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions('articles.delete') // Permission-based: specific permission required
+  remove(@Param('id') id: string) {
+    return this.articleUseCase.deleteArticle(+id);
+  }
+
+  @Post(':id/publish')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('admin', 'moderator') // Must have one of these roles
+  @RequirePermissions('articles.publish') // AND this specific permission
+  publish(@Param('id') id: string) {
+    return this.articleUseCase.publishArticle(+id);
+  }
+}
+```
+
+#### Best Practices for RBAC and Permissions
+
+1. **Use Roles for broad categories**: admin, moderator, user, guest
+2. **Use Permissions for specific actions**: `articles.create`, `articles.delete`, `users.manage`
+3. **Permission naming convention**: `resource.action` (e.g., `events.publish`, `users.delete`)
+4. **Combine both**: Roles contain groups of permissions, making management easier
+5. **Hierarchy**: Admin role typically has all permissions
+6. **Store in JWT payload**: Include roles in JWT for quick checks, load full permissions when needed
+7. **Database-driven**: Store roles and permissions in database for flexibility
+
+### Authentication and Authorization Flow
 
 ```
 1. User Registration:
-   POST /api/user/register
-   → UsersUseCase.register()
+   POST /api/auth/register
+   → AuthUseCase.register()
    → UserService.create()
    → Password hashed via @BeforeInsert hook
    → User saved to database
 
 2. User Login:
-   POST /api/user/authenticate
-   → UsersUseCase.authenticate()
+   POST /api/auth/login
+   → AuthUseCase.login()
    → UserService.findOneByUsername()
    → Validate password with bcrypt.compare()
-   → JwtService.signAsync() creates token
+   → JwtService.signAsync() creates tokens with roles
+   → Return { accessToken, refreshToken }
+
+3. Token Refresh:
+   POST /api/auth/refresh
+   → AuthUseCase.refreshToken()
+   → Verify refresh token
+   → Issue new access token
    → Return { accessToken }
 
-3. Protected Route Access:
-   GET /api/protected/resource
+4. Protected Route Access with RBAC:
+   GET /api/articles
    Headers: { Authorization: 'Bearer <token>' }
-   → AuthGuard.canActivate()
-   → Extract and verify JWT token
-   → Attach user payload to request
-   → Allow access if valid
+   → AuthGuard.canActivate() - verifies JWT
+   → RolesGuard.canActivate() - checks user roles
+   → PermissionsGuard.canActivate() - checks specific permissions
+   → Access granted if all guards pass
+
+5. User Management (Separate from Auth):
+   GET /api/users (admin only)
+   PUT /api/users/:id (admin only)
+   DELETE /api/users/:id (admin only)
+   → UsersController (separate from AuthController)
+   → UserManagementUseCase handles business logic
+   → Protected by AuthGuard + RolesGuard
 ```
 
 ---
@@ -1305,13 +1795,42 @@ npm install -D eslint prettier eslint-config-prettier eslint-plugin-prettier
 This guide provides a comprehensive foundation for building NestJS applications with:
 
 1. **Clear Layered Architecture**: Controllers → Use Cases → Services → Repositories
-2. **Modular Design**: Self-contained feature modules
-3. **Type Safety**: Full TypeScript support with proper configuration
-4. **Robust Data Access**: TypeORM with PostgreSQL
-5. **Secure Authentication**: JWT tokens with bcrypt password hashing
-6. **Data Validation**: DTOs with class-validator
-7. **Transaction Support**: Database consistency with typeorm-transactional
-8. **Best Practices**: Industry-standard patterns and libraries
+2. **Strict Separation**: Controllers always call use cases, never services directly
+3. **Modular Design**: Self-contained feature modules
+4. **Type Safety**: Full TypeScript support with proper configuration
+5. **Robust Data Access**: TypeORM with PostgreSQL
+6. **Secure Authentication**: JWT tokens with bcrypt password hashing
+7. **RBAC and Permissions**: Role-based and permission-based access control
+8. **User vs Person Separation**: User entity for authentication, Person entity for domain
+9. **Separate Controllers**: Authentication controller (login/register) and User management controller
+10. **Data Validation**: DTOs with class-validator
+11. **Transaction Support**: Database consistency with typeorm-transactional
+12. **Best Practices**: Industry-standard patterns and libraries
+
+### Key Architectural Rules
+
+1. **Controllers → Use Cases Only**: Controllers must never call services directly. All business logic orchestration goes through use cases.
+
+2. **User Entity Purpose**: The User table should only contain authentication-related data:
+   - Username
+   - Password (hashed)
+   - Roles
+   - Authentication metadata
+   
+3. **Person Entity Purpose**: The Person entity represents individuals in your domain:
+   - Name, bio, email
+   - Profile information
+   - Business-related data
+   - Can be linked to a User, but serves a different purpose
+
+4. **Separate Controllers**:
+   - **AuthController** (`/api/auth`): Handles register, login, refresh-token
+   - **UsersController** (`/api/users`): Handles user management (CRUD, role assignment)
+
+5. **Authorization Layers**:
+   - **RBAC (Role-Based)**: Broad access categories (admin, moderator, user)
+   - **Permissions**: Fine-grained control (articles.create, users.delete)
+   - Combine both for flexible security
 
 ### Quick Start Checklist
 
@@ -1319,10 +1838,14 @@ This guide provides a comprehensive foundation for building NestJS applications 
 - [ ] Install core NestJS dependencies
 - [ ] Configure database module with TypeORM
 - [ ] Set up configuration module for environment variables
-- [ ] Create feature modules with controllers, services, and entities
+- [ ] Create feature modules with controllers, use cases, services, and entities
 - [ ] Implement DTOs with validation
-- [ ] Add authentication with JWT and bcrypt
+- [ ] Add authentication with JWT and bcrypt (separate User and Person entities)
+- [ ] Create separate AuthController and UsersController
+- [ ] Implement RBAC with roles and permissions
+- [ ] Add RolesGuard and PermissionsGuard
 - [ ] Configure transactional support
+- [ ] Ensure all controllers only call use cases, never services
 - [ ] Set up API documentation with Swagger
 - [ ] Configure global pipes and guards
 - [ ] Write tests for critical functionality
