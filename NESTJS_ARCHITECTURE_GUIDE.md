@@ -965,6 +965,7 @@ import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToOne, ManyTo
 import * as bcrypt from 'bcrypt';
 import { Person } from '../person/entities/person.entity';
 import { Role } from '../role/entities/role.entity';
+import { Permission } from '../permission/entities/permission.entity';
 
 @Entity()
 export class User {
@@ -981,6 +982,12 @@ export class User {
   @JoinTable()
   roles: Role[];
 
+  // Direct permissions assigned to this specific user (extra privileges)
+  // These are in addition to permissions inherited from roles
+  @ManyToMany(() => Permission)
+  @JoinTable()
+  permissions: Permission[];
+
   // Optional: Link to Person entity if this user represents a person in the system
   @ManyToOne(() => Person, { nullable: true })
   person?: Person;
@@ -991,6 +998,14 @@ export class User {
   }
 }
 ```
+
+**User Permissions Model:**
+- **Role-based permissions**: Users inherit permissions from their assigned roles
+- **Extra/individual privileges**: Users can have additional permissions directly assigned to them
+- This allows for flexible authorization where a user can have:
+  1. Standard permissions from their role (e.g., 'moderator' role)
+  2. Extra specific privileges (e.g., permission to manage a particular resource)
+
 
 ### Role and Permission Entities
 
@@ -1082,7 +1097,17 @@ export class UserService {
   }
 
   async findOneByUsername(username: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { username } });
+    return this.userRepository.findOne({ 
+      where: { username },
+      relations: ['roles', 'permissions'] 
+    });
+  }
+
+  async findByIdWithPermissions(id: number): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { id },
+      relations: ['roles', 'roles.permissions', 'permissions']
+    });
   }
 
   async validateUserPassword(user: User, password: string): Promise<boolean> {
@@ -1092,6 +1117,27 @@ export class UserService {
   async existsByUsername(username: string): Promise<boolean> {
     const count = await this.userRepository.count({ where: { username } });
     return count > 0;
+  }
+
+  async assignExtraPermission(userId: number, permissionId: number): Promise<User> {
+    const user = await this.findByIdWithPermissions(userId);
+    const permission = await this.permissionRepository.findOne({ where: { id: permissionId } });
+    
+    if (!user.permissions) {
+      user.permissions = [];
+    }
+    
+    if (!user.permissions.find(p => p.id === permissionId)) {
+      user.permissions.push(permission);
+    }
+    
+    return this.userRepository.save(user);
+  }
+
+  async revokeExtraPermission(userId: number, permissionId: number): Promise<User> {
+    const user = await this.findByIdWithPermissions(userId);
+    user.permissions = user.permissions.filter(p => p.id !== permissionId);
+    return this.userRepository.save(user);
   }
 }
 ```
@@ -1176,7 +1222,7 @@ export class AuthUseCase {
 ```typescript
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { UpdateUserDto, AssignRoleDto } from '../dto/request';
+import { UpdateUserDto, AssignRoleDto, AssignPermissionDto } from '../dto/request';
 
 @Injectable()
 export class UserManagementUseCase {
@@ -1211,6 +1257,15 @@ export class UserManagementUseCase {
 
   async revokeRole(userId: number, roleId: number) {
     return this.userService.revokeRole(userId, roleId);
+  }
+
+  // Extra/individual privilege management
+  async assignExtraPermission(userId: number, dto: AssignPermissionDto) {
+    return this.userService.assignExtraPermission(userId, dto.permissionId);
+  }
+
+  async revokeExtraPermission(userId: number, permissionId: number) {
+    return this.userService.revokeExtraPermission(userId, permissionId);
   }
 }
 ```
@@ -1248,9 +1303,9 @@ export class AuthController {
 **User Management Controller** - Handles user CRUD operations:
 
 ```typescript
-import { Controller, Get, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { UserManagementUseCase } from '../use-case/user-management.use-case';
-import { UpdateUserDto, AssignRoleDto } from '../dto/request';
+import { UpdateUserDto, AssignRoleDto, AssignPermissionDto } from '../dto/request';
 import { AuthGuard } from '../guards/auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -1297,6 +1352,19 @@ export class UsersController {
   @Roles('admin')
   revokeRole(@Param('id') id: string, @Param('roleId') roleId: string) {
     return this.userManagementUseCase.revokeRole(+id, +roleId);
+  }
+
+  // Extra/individual privilege management
+  @Post(':id/permissions')
+  @Roles('admin')
+  assignExtraPermission(@Param('id') id: string, @Body() assignPermissionDto: AssignPermissionDto) {
+    return this.userManagementUseCase.assignExtraPermission(+id, assignPermissionDto);
+  }
+
+  @Delete(':id/permissions/:permissionId')
+  @Roles('admin')
+  revokeExtraPermission(@Param('id') id: string, @Param('permissionId') permissionId: string) {
+    return this.userManagementUseCase.revokeExtraPermission(+id, +permissionId);
   }
 }
 ```
@@ -1441,14 +1509,20 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not found');
     }
     
-    // Extract all permissions from user's roles
-    const userPermissions = fullUser.roles
+    // Extract permissions from user's roles
+    const rolePermissions = fullUser.roles
       .flatMap(role => role.permissions)
       .map(permission => permission.name);
     
+    // Extract extra/individual permissions directly assigned to user
+    const extraPermissions = fullUser.permissions?.map(permission => permission.name) || [];
+    
+    // Combine both role-based and extra permissions
+    const allUserPermissions = [...new Set([...rolePermissions, ...extraPermissions])];
+    
     // Check if user has all required permissions
     const hasAllPermissions = requiredPermissions.every(permission =>
-      userPermissions.includes(permission)
+      allUserPermissions.includes(permission)
     );
     
     if (!hasAllPermissions) {
@@ -1513,9 +1587,13 @@ export class ArticlesController {
 2. **Use Permissions for specific actions**: `articles.create`, `articles.delete`, `users.manage`
 3. **Permission naming convention**: `resource.action` (e.g., `events.publish`, `users.delete`)
 4. **Combine both**: Roles contain groups of permissions, making management easier
-5. **Hierarchy**: Admin role typically has all permissions
-6. **Store in JWT payload**: Include roles in JWT for quick checks, load full permissions when needed
-7. **Database-driven**: Store roles and permissions in database for flexibility
+5. **Extra/Individual Privileges**: Users can have permissions directly assigned to them in addition to role-based permissions
+   - **Use case**: A regular 'user' role member needs temporary access to a specific resource
+   - **Example**: User with 'moderator' role + extra permission 'articles.featured.manage'
+6. **Hierarchy**: Admin role typically has all permissions
+7. **Store in JWT payload**: Include roles in JWT for quick checks, load full permissions when needed
+8. **Database-driven**: Store roles and permissions in database for flexibility
+9. **Permission Resolution**: When checking permissions, combine both role-based and extra user permissions
 
 ### Authentication and Authorization Flow
 
@@ -1542,18 +1620,25 @@ export class ArticlesController {
    → Issue new access token
    → Return { accessToken }
 
-4. Protected Route Access with RBAC:
+4. Protected Route Access with RBAC and Extra Permissions:
    GET /api/articles
    Headers: { Authorization: 'Bearer <token>' }
    → AuthGuard.canActivate() - verifies JWT
    → RolesGuard.canActivate() - checks user roles
-   → PermissionsGuard.canActivate() - checks specific permissions
+   → PermissionsGuard.canActivate() - checks permissions (role-based + extra)
+   → Permission resolution combines:
+      * Permissions from user's roles
+      * Extra permissions directly assigned to user
    → Access granted if all guards pass
 
 5. User Management (Separate from Auth):
    GET /api/users (admin only)
    PUT /api/users/:id (admin only)
    DELETE /api/users/:id (admin only)
+   POST /api/users/:id/roles (admin - assign role)
+   DELETE /api/users/:id/roles/:roleId (admin - revoke role)
+   POST /api/users/:id/permissions (admin - assign extra permission)
+   DELETE /api/users/:id/permissions/:permissionId (admin - revoke extra permission)
    → UsersController (separate from AuthController)
    → UserManagementUseCase handles business logic
    → Protected by AuthGuard + RolesGuard
@@ -1803,7 +1888,7 @@ This guide provides a comprehensive foundation for building NestJS applications 
 4. **Type Safety**: Full TypeScript support with proper configuration
 5. **Robust Data Access**: TypeORM with PostgreSQL
 6. **Secure Authentication**: JWT tokens with bcrypt password hashing
-7. **RBAC and Permissions**: Role-based and permission-based access control
+7. **RBAC and Permissions**: Role-based and permission-based access control with extra/individual privileges
 8. **User vs Person Separation**: User entity for authentication, Person entity for domain
 9. **Separate Controllers**: Authentication controller (login/register) and User management controller
 10. **Data Validation**: DTOs with class-validator
@@ -1817,7 +1902,8 @@ This guide provides a comprehensive foundation for building NestJS applications 
 2. **User Entity Purpose**: The User table should only contain authentication-related data:
    - Username
    - Password (hashed)
-   - Roles
+   - Roles (for role-based permissions)
+   - Extra/individual permissions (specific privileges beyond role)
    - Authentication metadata
    
 3. **Person Entity Purpose**: The Person entity represents individuals in your domain:
@@ -1828,11 +1914,12 @@ This guide provides a comprehensive foundation for building NestJS applications 
 
 4. **Separate Controllers**:
    - **AuthController** (`/api/auth`): Handles register, login, refresh-token
-   - **UsersController** (`/api/users`): Handles user management (CRUD, role assignment)
+   - **UsersController** (`/api/users`): Handles user management (CRUD, role assignment, extra permissions)
 
 5. **Authorization Layers**:
    - **RBAC (Role-Based)**: Broad access categories (admin, moderator, user)
    - **Permissions**: Fine-grained control (articles.create, users.delete)
+   - **Extra Privileges**: Individual permissions assigned directly to users beyond their roles
    - Combine both for flexible security
 
 ### Quick Start Checklist
